@@ -1,0 +1,24 @@
+# Build artifacts
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/*.cmake
+/*.make
+
+# CUDA objects
+*.o
+*.obj
+*.so
+*.cubin
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+.DS_Store
