@@ -15,6 +15,14 @@ I've implemented the mixed precision refinement driver in `refinement.cu`. The i
   - Updates the solution in double precision
   - Checks for convergence based on residual norm
 
+The core idea of iterative refinement is:
+
+- compute residual: $r_k = b - A x_k$
+- solve correction: $A \, \delta x_k = r_k$
+- update solution: $x_{k+1} = x_k + \delta x_k$
+
+In the current code, the residual is computed in FP64, while the correction solve is performed in lower precision and then added back to the double-precision solution.
+
 The custom matrix-vector multiplication kernel uses:
 - Shared memory tiling to cache vector elements and reduce global memory accesses
 - Coalesced memory access patterns for efficient data loading from global memory
