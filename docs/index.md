@@ -10,14 +10,23 @@ I've implemented the mixed precision refinement driver in `refinement.cu`. The i
 
 - **Initial solve**: Uses single-precision LU factorization via cuSOLVER to get an approximate solution
 - **Iterative refinement loop**: 
-  - Computes the residual in double precision using cuBLAS
+  - Computes the residual in double precision using a custom CUDA kernel with shared memory tiling and coalesced memory access for optimal performance
   - Solves the correction equation in single precision
   - Updates the solution in double precision
   - Checks for convergence based on residual norm
 
+The custom matrix-vector multiplication kernel uses:
+- Shared memory tiling to cache vector elements and reduce global memory accesses
+- Coalesced memory access patterns for efficient data loading from global memory
+- Block size of 32 threads for balanced occupancy and performance
+
 I've also implemented the `gpuSolve` function in solver.cu using cuSOLVER's LU factorization and solve routines for single-precision linear systems.
 
 The code includes proper CUDA memory management, error checking, and cleanup. Note that for production use, you might want to optimize by pre-factorizing the single-precision matrix once instead of factorizing it in each `gpuSolve` call.
+
+## GitHub Repository
+
+The source code for this project is available on GitHub: [mixed-precision-iterative-refinement-gpu][def_repo]
 
 ## What you will find here
 
@@ -35,3 +44,6 @@ This documentation is published via GitHub Pages from `docs/`.
 1. Build the CUDA project using `CMake`
 2. Run the Python baseline experiments
 3. Extend `src/refinement.cu` with iterative refinement kernels
+
+
+[def_repo]: https://github.com/OleBo/mixed-precision-iterative-refinement-gpu

@@ -1,5 +1,7 @@
 # Mixed-Precision Iterative Refinement Solver (GPU)
 
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://olebo.github.io/mixed-precision-iterative-refinement-gpu/)
+
 A portfolio-grade GPU project demonstrating numerical maturity, mixed-precision design, and performance-aware implementation.
 
 ## Overview
