@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  mixed-precision-solver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mixed-precision-solver:latest
+    container_name: mixed-precision-solver
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./results:/app/results
+      - ./python:/app/python
+    working_dir: /app
+    command: bash
