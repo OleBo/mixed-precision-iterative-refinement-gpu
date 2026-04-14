@@ -1,3 +1,9 @@
+---
+title: Home
+nav_order: 1
+---
+
+# Mixed-Precision Iterative Refinement on GPUs
 [![Build](https://img.shields.io/github/actions/workflow/status/OleBo/mixed-precision-iterative-refinement-gpu/build.yml?branch=main)](https://github.com/OleBo/mixed-precision-iterative-refinement-gpu/actions)
 [![CUDA](https://img.shields.io/badge/CUDA-Enabled-green?logo=nvidia)](https://developer.nvidia.com/cuda-zone)
 [![License](https://img.shields.io/github/license/OleBo/mixed-precision-iterative-refinement-gpu)](https://github.com/OleBo/mixed-precision-iterative-refinement-gpu/blob/main/LICENSE)

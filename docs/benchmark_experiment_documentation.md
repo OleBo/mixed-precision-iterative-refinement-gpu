@@ -1,3 +1,8 @@
+---
+title: Benchmark Experiments
+nav_order: 3
+---
+
 # Benchmark Experiment Documentation — CPU Baseline (FP64 Ground Truth)
 
 ## 1. Objective

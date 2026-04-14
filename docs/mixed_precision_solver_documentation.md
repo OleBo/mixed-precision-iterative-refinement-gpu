@@ -1,3 +1,8 @@
+---
+title: Mathematical Foundations
+nav_order: 2
+---
+
 # Mixed-Precision Linear Solver (CUDA) — Mathematical Documentation
 
 ## 1. Problem Statement

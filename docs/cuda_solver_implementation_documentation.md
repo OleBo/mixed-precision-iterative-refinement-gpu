@@ -1,3 +1,8 @@
+---
+title: CUDA Implementation
+nav_order: 4
+---
+
 # CUDA C++ Implementation — Mixed Precision Solver
 
 ## 1. Overview
