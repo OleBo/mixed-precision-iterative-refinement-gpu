@@ -1,0 +1,20 @@
+title: Mixed-Precision Iterative Refinement on GPUs
+description: High-performance mixed-precision linear solvers using CUDA, cuBLAS, and iterative refinement
+theme: minima
+
+# Optional but useful
+markdown: kramdown
+kramdown:
+  math_engine: mathjax
+
+# Enable MathJax (for LaTeX rendering)
+plugins:
+  - jekyll-feed
+
+# GitHub Pages settings
+github:
+  repository_url: https://github.com/OleBo/mixed-precision-iterative-refinement-gpu
+
+# Navigation (optional)
+header_pages:
+  - index.md

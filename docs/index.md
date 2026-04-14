@@ -1,57 +1,90 @@
-# Mixed-Precision Iterative Refinement Solver
+# Mixed-Precision Iterative Refinement on GPUs
 
-A GPU-focused project showcasing:
+[![Build](https://img.shields.io/github/actions/workflow/status/OleBo/mixed-precision-iterative-refinement-gpu/build.yml?branch=main)](https://github.com/OleBo/mixed-precision-iterative-refinement-gpu/actions)
+[![CUDA](https://img.shields.io/badge/CUDA-Enabled-green?logo=nvidia)](https://developer.nvidia.com/cuda-zone)
+[![License](https://img.shields.io/github/license/OleBo/mixed-precision-iterative-refinement-gpu)](https://github.com/OleBo/mixed-precision-iterative-refinement-gpu/blob/main/LICENSE)
 
-- low-precision compute for speed
-- high-precision residual correction for accuracy
-- iterative refinement as a high-quality HPC design pattern
+---
 
-I've implemented the mixed precision refinement driver in `refinement.cu`. The implementation performs iterative refinement using a combination of single-precision (float) and double-precision (double) arithmetic:
+Welcome to this project on **mixed-precision linear solvers using CUDA and modern HPC techniques**.
 
-- **Initial solve**: Uses single-precision LU factorization via cuSOLVER to get an approximate solution
-- **Iterative refinement loop**: 
-  - Computes the residual in double precision using a custom CUDA kernel with shared memory tiling and coalesced memory access for optimal performance
-  - Solves the correction equation in single precision
-  - Updates the solution in double precision
-  - Checks for convergence based on residual norm
+This repository demonstrates how to combine:
+- **FP32 performance on GPUs**
+- with **FP64 accuracy via iterative refinement**
 
-The core idea of iterative refinement is:
+The result is a solver that achieves **high performance without sacrificing numerical precision** — a key idea in modern scientific computing and AI workloads.
 
-- compute residual: $r_k = b - A x_k$
-- solve correction: $A \, \delta x_k = r_k$
-- update solution: $x_{k+1} = x_k + \delta x_k$
+---
 
-In the current code, the residual is computed in FP64, while the correction solve is performed in lower precision and then added back to the double-precision solution.
+## 🔍 What You’ll Find Here
 
-The custom matrix-vector multiplication kernel uses:
-- Shared memory tiling to cache vector elements and reduce global memory accesses
-- Coalesced memory access patterns for efficient data loading from global memory
-- Block size of 32 threads for balanced occupancy and performance
+This project is structured around three core components:
 
-I've also implemented the `gpuSolve` function in solver.cu using cuSOLVER's LU factorization and solve routines for single-precision linear systems.
+### 1. Mathematical Foundations
+A detailed explanation of the algorithm:
+- Linear system formulation
+- Iterative refinement theory
+- Convergence conditions and numerical stability
 
-The code includes proper CUDA memory management, error checking, and cleanup. Note that for production use, you might want to optimize by pre-factorizing the single-precision matrix once instead of factorizing it in each `gpuSolve` call.
+👉 [Mixed Precision Solver Documentation](./Mixed%20Precision%20Solver%20Documentation.md)
 
-## GitHub Repository
+---
 
-The source code for this project is available on GitHub: [mixed-precision-iterative-refinement-gpu][def_repo]
+### 2. Experimental Evaluation
+A full benchmarking pipeline including:
+- CPU baseline (FP64 ground truth)
+- Statistical analysis (random matrices)
+- CSV logging and reproducible experiments
+- Visualization with matplotlib
+- GPU vs FP32 vs mixed-precision comparison (“money plot”)
 
-## What you will find here
+👉 [Benchmark Experiment Documentation](./Benchmark%20Experiment%20Documentation.md)
 
-- CPU reference baseline in `python/experiments.py`
-- GPU solver skeleton in `src/`
-- mixed precision iterative refinement architecture
-- data and visualization placeholders in `results/`
+---
 
-## Pages
+### 3. CUDA Implementation
+A deep dive into the GPU implementation:
+- Memory management and data movement
+- Parallelization strategy (threads, blocks, kernels)
+- Use of cuBLAS / cuSOLVER
+- Memory hierarchy and tiling
+- Template-based design patterns
 
-This documentation is published via GitHub Pages from `docs/`.
+👉 [CUDA Solver Implementation Documentation](./CUDA%20Solver%20Implementation%20Documentation.md)
 
-## Next steps
+---
 
-1. Build the CUDA project using `CMake`
-2. Run the Python baseline experiments
-3. Extend `src/refinement.cu` with iterative refinement kernels
+## 🚀 Project Repository
 
+Full source code is available here:
 
-[def_repo]: https://github.com/OleBo/mixed-precision-iterative-refinement-gpu
+👉 https://github.com/OleBo/mixed-precision-iterative-refinement-gpu
+
+---
+
+## 💡 Why This Matters
+
+Mixed-precision methods are widely used in:
+- High-performance computing (HPC)
+- Scientific simulations
+- Machine learning and AI
+
+This project shows how to:
+- **bridge theory and implementation**
+- **leverage GPU architectures effectively**
+- **build reproducible numerical experiments**
+
+---
+
+## 📌 Key Takeaway
+
+> You don’t need full precision everywhere — you just need it where it matters.
+
+---
+
+## 👤 Author
+
+This project is part of a portfolio exploring:
+- Numerical linear algebra
+- GPU programming (CUDA)
+- High-performance computing systems
