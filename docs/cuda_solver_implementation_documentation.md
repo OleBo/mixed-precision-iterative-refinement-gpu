@@ -26,9 +26,9 @@ The implementation consists of:
 
 ### GPU Solve (FP32)
 
-1. Copy matrix \(A\) and vector \(b\) to device memory
-2. Factorize \(A\) (typically LU)
-3. Solve \(Ax = b\)
+1. Copy matrix $A$ and vector $b$ to device memory
+2. Factorize $A$ (typically LU)
+3. Solve $Ax = b$
 4. Copy solution back
 
 ### Refinement Loop
@@ -232,15 +232,15 @@ Even if not explicitly written:
 
 The solver likely performs:
 
-\[
+$$
 A = LU
-\]
+$$
 
 Then solves:
 
-\[
+$$
 Ly = b, \quad Ux = y
-\]
+$$
 
 ---
 

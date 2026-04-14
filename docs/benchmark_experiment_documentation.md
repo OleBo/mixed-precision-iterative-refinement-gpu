@@ -13,8 +13,8 @@ This baseline:
 - Runs entirely on CPU
 - Uses **double precision (FP64)**
 - Provides reference values for:
-  - Residual: \( \|Ax - b\| \)
-  - Solution error: \( \|x - x_{true}\| \)
+  - Residual: $ \|Ax - b\| $
+  - Solution error: $ \|x - x_{true}\| $
 
 These metrics serve as the **gold standard** for all subsequent comparisons.
 
@@ -26,14 +26,14 @@ These metrics serve as the **gold standard** for all subsequent comparisons.
 
 We solve:
 
-\[
+$$
 A x = b
-\]
+$$
 
 where:
-- \(A \in \mathbb{R}^{n \times n}\)
-- \(x_{true} = \mathbf{1}\) (vector of ones)
-- \(b = A x_{true}\)
+- $A \in \mathbb{R}^{n \times n}$
+- $x_{true} = \mathbf{1}$ (vector of ones)
+- $b = A x_{true}$
 
 This construction ensures:
 - The exact solution is known
@@ -45,9 +45,9 @@ This construction ensures:
 
 #### 1. Random Gaussian Matrix
 
-\[
+$$
 A_{ij} \sim \mathcal{N}(0, 1)
-\]
+$$
 
 Properties:
 - Well-conditioned (typically)
@@ -57,9 +57,9 @@ Properties:
 
 #### 2. Hilbert Matrix
 
-\[
+$$
 A_{ij} = \frac{1}{i + j + 1}
-\]
+$$
 
 Properties:
 - Extremely ill-conditioned
@@ -71,9 +71,9 @@ Properties:
 
 ### 3.1 Residual
 
-\[
+$$
 \|Ax - b\|_2
-\]
+$$
 
 Interpretation:
 - Measures how well the computed solution satisfies the equation
@@ -83,9 +83,9 @@ Interpretation:
 
 ### 3.2 Solution Error
 
-\[
+$$
 \|x - x_{true}\|_2
-\]
+$$
 
 Interpretation:
 - Measures distance to the exact solution
@@ -99,9 +99,9 @@ A solver may have:
 - **Low residual but high error** (ill-conditioned case)
 - This highlights the role of the condition number:
 
-\[
+$$
 \|x - x^*\| \leq \kappa(A) \cdot \frac{\|r\|}{\|A\|}
-\]
+$$
 
 ---
 
@@ -175,8 +175,8 @@ if __name__ == "__main__":
 
 ### 5.1 Random Matrices
 
-- Residual: \( \approx 10^{-14} \) to \(10^{-16}\)
-- Error: \( \approx 10^{-14} \)
+- Residual: $ \approx 10^{-14} $ to $10^{-16}$
+- Error: $ \approx 10^{-14} $
 
 Interpretation:
 - Near machine precision accuracy
@@ -187,7 +187,7 @@ Interpretation:
 ### 5.2 Hilbert Matrices
 
 - Residual: small
-- Error: **large** (may grow rapidly with \(n\))
+- Error: **large** (may grow rapidly with $n$)
 
 Interpretation:
 - Ill-conditioning amplifies numerical errors
@@ -212,9 +212,9 @@ python baseline.py --size 128 --matrix hilbert
 
 Recommended sizes:
 
-\[
+$$
 n \in \{64, 128, 256, 512, 1024\}
-\]
+$$
 
 ---
 
@@ -254,9 +254,9 @@ All GPU results should be evaluated relative to this baseline.
 Possible improvements:
 
 - Add condition number estimation:
-  \[
+  $$
   \kappa(A) = \|A\| \|A^{-1}\|
-  \]
+  $$
 
 - Add timing measurements
 - Export results to CSV for plotting

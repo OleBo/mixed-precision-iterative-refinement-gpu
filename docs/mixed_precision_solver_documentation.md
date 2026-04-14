@@ -9,14 +9,14 @@ nav_order: 2
 
 We consider the numerical solution of a linear system:
 
-\[
+$$
 A x = b, \quad A \in \mathbb{R}^{n \times n}, \; x,b \in \mathbb{R}^n
-\]
+$$
 
 where:
-- \(A\) is typically dense and non-singular
-- \(b\) is a given right-hand side
-- \(x\) is the unknown solution
+- $A$ is typically dense and non-singular
+- $b$ is a given right-hand side
+- $x$ is the unknown solution
 
 The goal is to compute an accurate solution efficiently using **mixed precision arithmetic** on GPUs.
 
@@ -47,11 +47,11 @@ The code implements a **mixed-precision iterative refinement scheme**.
 ### Step 1: Initial Solve (Low Precision)
 
 Solve:
-\[
+$$
 A^{(f)} x^{(0)} = b^{(f)}
-\]
+$$
 
-where \(A^{(f)}\), \(b^{(f)}\) are FP32 versions of \(A\), \(b\).
+where $A^{(f)}$, $b^{(f)}$ are FP32 versions of $A$, $b$.
 
 This is done on the GPU via:
 
@@ -60,21 +60,21 @@ gpuSolve(...)
 ```
 
 Mathematically:
-\[
+$$
 x^{(0)} \approx A^{-1} b
-\]
+$$
 
 ---
 
 ### Step 2: Iterative Refinement Loop
 
-For \(k = 0,1,2,\dots\):
+For $k = 0,1,2,\dots$:
 
 #### 3.1 Residual Computation (High Precision)
 
-\[
+$$
 r^{(k)} = b - A x^{(k)}
-\]
+$$
 
 - Computed in FP64 to avoid loss of significance
 - Measures current error
@@ -84,30 +84,30 @@ r^{(k)} = b - A x^{(k)}
 #### 3.2 Correction Solve (Low Precision)
 
 Solve:
-\[
+$$
 A \, \delta x^{(k)} = r^{(k)}
-\]
+$$
 
 BUT in practice:
-- \(A\) and \(r^{(k)}\) are cast to FP32
+- $A$ and $r^{(k)}$ are cast to FP32
 - Solve is performed on GPU
 
 ---
 
 #### 3.3 Update Step
 
-\[
+$$
 x^{(k+1)} = x^{(k)} + \delta x^{(k)}
-\]
+$$
 
 ---
 
 #### 3.4 Convergence Check
 
 Stop when:
-\[
+$$
 \|r^{(k)}\| \leq \varepsilon
-\]
+$$
 
 or after `maxIter` iterations.
 
@@ -117,27 +117,27 @@ or after `maxIter` iterations.
 
 ### 4.1 Error Propagation
 
-Let the true solution be \(x^*\). Define the error:
+Let the true solution be $x^*$. Define the error:
 
-\[
+$$
 e^{(k)} = x^* - x^{(k)}
-\]
+$$
 
 Then:
-\[
+$$
 r^{(k)} = A e^{(k)}
-\]
+$$
 
 Solving:
-\[
+$$
 A \delta x^{(k)} = r^{(k)}
 \Rightarrow \delta x^{(k)} = e^{(k)}
-\]
+$$
 
 Thus ideally:
-\[
+$$
 x^{(k+1)} = x^{(k)} + e^{(k)} = x^*
-\]
+$$
 
 In exact arithmetic, convergence happens in **one step**.
 
@@ -150,23 +150,23 @@ In floating-point arithmetic:
 - Correction solve is approximate (FP32)
 
 We effectively solve:
-\[
+$$
 (A + \Delta A) \delta x^{(k)} = r^{(k)}
-\]
+$$
 
 This leads to a contraction:
-\[
+$$
 \|e^{(k+1)}\| \leq C \|e^{(k)}\|
-\]
+$$
 
 with convergence if:
-\[
+$$
 \kappa(A) \cdot u_{\text{low}} < 1
-\]
+$$
 
 where:
-- \(\kappa(A)\): condition number
-- \(u_{\text{low}}\): machine precision of FP32
+- $\kappa(A)$: condition number
+- $u_{\text{low}}$: machine precision of FP32
 
 ---
 
@@ -174,9 +174,9 @@ where:
 
 For successful refinement:
 
-\[
+$$
 \kappa(A) \lesssim \frac{1}{u_{\text{float}}} \approx 10^7
-\]
+$$
 
 If the system is too ill-conditioned, refinement may fail.
 
@@ -216,9 +216,9 @@ Encapsulates all solver functionality.
   - `d_x`: solution (FP32)
 
 Mathematically:
-\[
+$$
 \text{solve } A x = b
-\]
+$$
 
 Implementation likely uses:
 - LU decomposition via cuSOLVER
@@ -306,9 +306,9 @@ Handles non-CUDA return types.
 
 The entire solver is based on the identity:
 
-\[
+$$
 x = x + A^{-1}(b - A x)
-\]
+$$
 
 which is implemented iteratively using:
 - **Fast approximate solves (FP32)**
