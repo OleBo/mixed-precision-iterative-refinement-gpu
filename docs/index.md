@@ -30,7 +30,7 @@ A detailed explanation of the algorithm:
 - Iterative refinement theory
 - Convergence conditions and numerical stability
 
-👉 [Mixed Precision Solver Documentation](./mixed_precision_solver_documentation.md)
+👉 [Mixed Precision Solver Documentation](mixed_precision_solver_documentation.md)
 
 ---
 
