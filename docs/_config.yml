@@ -1,4 +1,4 @@
-title: Mixed-Precision Iterative Refinement on GPUs
+title: Documentation
 description: High-performance mixed-precision linear solvers using CUDA, cuBLAS, and iterative refinement
 theme: minima
 

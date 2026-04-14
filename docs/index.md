@@ -26,7 +26,7 @@ A detailed explanation of the algorithm:
 - Iterative refinement theory
 - Convergence conditions and numerical stability
 
-👉 [Mixed Precision Solver Documentation](./Mixed%20Precision%20Solver%20Documentation.md)
+👉 [Mixed Precision Solver Documentation](./mixed_precision_solver%20Documentation.md)
 
 ---
 
@@ -38,7 +38,7 @@ A full benchmarking pipeline including:
 - Visualization with matplotlib
 - GPU vs FP32 vs mixed-precision comparison (“money plot”)
 
-👉 [Benchmark Experiment Documentation](./Benchmark%20Experiment%20Documentation.md)
+👉 [Benchmark Experiment Documentation](./benchmark_experiment_documentation.md)
 
 ---
 
@@ -50,7 +50,7 @@ A deep dive into the GPU implementation:
 - Memory hierarchy and tiling
 - Template-based design patterns
 
-👉 [CUDA Solver Implementation Documentation](./CUDA%20Solver%20Implementation%20Documentation.md)
+👉 [CUDA Solver Implementation Documentation](./cuda_solver_implementation_documentation.md)
 
 ---
 
