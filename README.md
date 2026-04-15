@@ -104,12 +104,32 @@ The Dockerfile uses a multi-stage build process:
 - **Builder stage**: Compiles CUDA code on `nvidia/cuda:12.2.2-devel`
 - **Runtime stage**: Runs on `nvidia/cuda:12.2.2-runtime` with Python support
 
-### Python experiments
+## 🛠 Workflow Management
 
-```bash
-python3 python/experiments.py --size 512 --matrix hilbert
-python3 python/plots.py --input results/benchmarks.csv
-```
+This project uses a Makefile to automate compilation and execution across three independent workflows. All Python scripts are located in ./python/, and CUDA source files are in ./src/.
+
+### Prerequisites
+
+* CUDA Toolkit (for nvcc)
+* Python 3 with required dependencies
+
+### Available Commands
+
+| Command | Description |
+|---|---|
+| make | Runs all workflows in sequence (Baseline → Standard → Full). |
+| make workflow_baseline | Runs baseline tests with random and hilbert matrices. |
+| make workflow_standard | Runs the main experiment pipeline (Run → Aggregate → Plot). |
+| make build_cuda | Compiles the CUDA solver into libmpsolver.so. |
+| make workflow_full | Compiles the solver and runs the full experiment/plotting suite. |
+| make clean | Removes libmpsolver.so and workflow.log. |
+
+### Error Handling & Logging
+
+* Logging: Every step (including timestamps and console output) is logged to workflow.log.
+* Resilience: The workflow_full suite is configured to run even if a specific script within it encounters an error, ensuring data collection continues where possible.
+* Dependencies: workflow_full will automatically trigger build_cuda if the shared library is missing.
+
 
 ## Expected results
 
