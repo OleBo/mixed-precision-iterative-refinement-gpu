@@ -52,7 +52,7 @@
         {% endif %}
         <nav>
   <ul>
-    {% assign sorted_pages = site.pages | sort: "order" %}
+    {% assign sorted_pages = site.pages | sort: "nav_order" %}
     {% for p in sorted_pages %}
       {% if p.nav_order %}
         <li>
