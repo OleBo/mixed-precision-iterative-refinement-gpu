@@ -50,13 +50,18 @@
           <li><a href="{{ site.github.repository_url }}">View On <strong>GitHub</strong></a></li>
         </ul>
         {% endif %}
-        <ul>
-  {% for page in site.pages %}
-    {% if page.title %}
-      <li><a href="{{ page.url | relative_url }}">{{ page.title }}</a></li>
-    {% endif %}
-  {% endfor %}
-</ul>
+        <nav>
+  <ul>
+    {% assign sorted_pages = site.pages | sort: "order" %}
+    {% for p in sorted_pages %}
+      {% if p.nav_order %}
+        <li>
+          <a href="{{ p.url | relative_url }}">{{ p.title }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
       </header>
       <section>
 
