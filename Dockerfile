@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip3 install argparse csv ctypes numpy pandas matplotlib
+RUN pip3 install argparse numpy pandas matplotlib
 
 # Set working directory
 WORKDIR /app
