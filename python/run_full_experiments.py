@@ -40,3 +40,7 @@ def run(sizes, K=30, out_file="results/full_results.csv"):
             "res_mixed","err_mixed"
         ])
         writer.writerows(rows)
+        
+if __name__ == "__main__":
+    sizes = [64, 128, 256, 512, 1024]
+    run(sizes)

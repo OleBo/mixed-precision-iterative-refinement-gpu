@@ -10,11 +10,20 @@ find_package(CUDAToolkit REQUIRED)
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# 1. Build the library with all functional logic
-add_library(mixed_precision_lib STATIC
+# just to be 100% sure the T4 code is being generated
+set(CMAKE_CUDA_ARCHITECTURES 75) 
+
+# 1. Build the library with all functional logic (Python cannot load a STATIC)
+add_library(mixed_precision_lib SHARED
     src/solver.cu
     src/refinement.cu
     src/utils.cu
+)
+
+# This tells the library to search for its dependencies in the CUDA folder at runtime
+set_target_properties(mixed_precision_lib PROPERTIES
+    INSTALL_RPATH "/usr/local/cuda/lib64"
+    BUILD_WITH_INSTALL_RPATH TRUE
 )
 
 # Required for cross-file kernel calls and linking
@@ -23,15 +32,15 @@ set_target_properties(mixed_precision_lib PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-# 2. Build the executable
-# IMPORTANT: src/main.cu (or whichever file has int main()) must be here
-add_executable(mpsolver src/main.cu)
-
 # 3. Link everything together
 # We link the custom lib, then the CUDA toolkit libs
-target_link_libraries(mpsolver 
+target_link_libraries(mixed_precision_lib 
     PRIVATE 
-    mixed_precision_lib 
     CUDA::cublas 
     CUDA::cusolver
+    CUDA::cudart
 )
+
+# 3. Build the executable and link it to your lib
+add_executable(mpsolver src/main.cu)
+target_link_libraries(mpsolver PRIVATE mixed_precision_lib)

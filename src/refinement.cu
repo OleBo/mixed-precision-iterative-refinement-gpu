@@ -108,3 +108,12 @@ void refineSolution(const double* h_A, const double* h_b, double* h_x, int n, in
 }
 
 } // namespace mixed_precision
+
+// --- wrapper for python: refineSolution function expects CPU (Host) pointers. ---
+extern "C" {
+    void refineSolution(const double* h_A, const double* h_b, double* h_x, int n, int maxIter) {
+        // Calls the namespaced function with the CPU pointers
+        mixed_precision::refineSolution(h_A, h_b, h_x, n, maxIter);
+    }
+}
+

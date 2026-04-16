@@ -38,6 +38,9 @@ This yields:
 - Performance close to FP32
 - Accuracy close to FP64
 
+> **Remark: Hardware Acceleration**
+> Modern GPU architectures (e.g., NVIDIA Ampere/Hopper) utilize **Tensor Cores** to [significantly accelerate](https://www.google.com/url?sa=i&source=web&rct=j&url=https://pmc.ncbi.nlm.nih.gov/articles/PMC7735315/&ved=2ahUKEwiFwPq_7vGTAxWXSPEDHdTiHZoQy_kOegYIAQgMEAM&opi=89978449&cd&psig=AOvVaw2tTWhaKJZnGeino5eM4wgU&ust=1776411456484000) low-precision matrix math. While this provides a massive throughput boost for the "Correction Solve" phase, it requires careful monitoring of the matrix condition number to ensure convergence.
+
 ---
 
 ## 3. Algorithm Overview
@@ -115,75 +118,92 @@ or after `maxIter` iterations.
 
 ## 4. Mathematical Foundations
 
-### 4.1 Error Propagation
+### 4.1 Error Propagation and Ideal Iteration
+Let $x^*$ be the exact solution to $Ax = b$. We define the error at iteration $k$ as:
+$$e^{(k)} = x^* - x^{(k)}$$
 
-Let the true solution be $x^*$. Define the error:
+The **residual** $r^{(k)}$, which represents the remaining error in the system, is computed as:
+$$r^{(k)} = b - Ax^{(k)} = A(x^* - x^{(k)}) = Ae^{(k)}$$
 
-$$
-e^{(k)} = x^* - x^{(k)}
-$$
+By solving the system for the correction term $\delta x^{(k)}$:
+$$A \delta x^{(k)} = r^{(k)} \implies \delta x^{(k)} = e^{(k)}$$
 
-Then:
-$$
-r^{(k)} = A e^{(k)}
-$$
-
-Solving:
-$$
-A \delta x^{(k)} = r^{(k)}
-\Rightarrow \delta x^{(k)} = e^{(k)}
-$$
-
-Thus ideally:
-$$
-x^{(k+1)} = x^{(k)} + e^{(k)} = x^*
-$$
-
-In exact arithmetic, convergence happens in **one step**.
+In **exact arithmetic**, the solution is updated as $x^{(k+1)} = x^{(k)} + \delta x^{(k)}$, which yields the true solution $x^*$ in a single step.
 
 ---
 
 ### 4.2 Finite Precision Effects
+In mixed-precision arithmetic, errors introduced during computation prevent one-step convergence:
 
-In floating-point arithmetic:
-- Residual is computed accurately (FP64)
-- Correction solve is approximate (FP32)
+1.  **High-Precision Residual:** $r^{(k)}$ is computed in **FP64**. This minimizes the impact of *cancellation error*, ensuring the residual reflects the remaining error rather than rounding noise.
+2.  **Approximate Correction:** The correction $\delta x^{(k)}$ is solved in **FP32**. We effectively solve a perturbed system:
+    $$(A + \delta A^{(k)}) \widehat{\delta x}^{(k)} = r^{(k)}$$
+    where $\delta A^{(k)}$ represents the backward error of the low-precision solver.
 
-We effectively solve:
-$$
-(A + \Delta A) \delta x^{(k)} = r^{(k)}
-$$
-
-This leads to a contraction:
-$$
-\|e^{(k+1)}\| \leq C \|e^{(k)}\|
-$$
-
-with convergence if:
-$$
-\kappa(A) \cdot u_{\text{low}} < 1
-$$
-
-where:
-- $\kappa(A)$: condition number
-- $u_{\text{low}}$: machine precision of FP32
+Because $\widehat{\delta x}^{(k)}$ is an approximation, the update $x^{(k+1)} = x^{(k)} + \widehat{\delta x}^{(k)}$ behaves as a **contraction mapping**:
+$$\|e^{(k+1)}\| \leq C \cdot \|e^{(k)}\|, \quad \text{where } C < 1$$
 
 ---
 
 ### 4.3 Convergence Condition
+The refinement converges toward FP64 accuracy if the error introduced by the low-precision solve does not exceed the information provided by the residual:
+$$\kappa(A) \cdot u_{\text{low}} < 1$$
 
-For successful refinement:
+Where:
+*   $\kappa(A)$ is the **condition number** of the matrix.
+*   $u_{\text{low}} \approx 10^{-7}$ is the machine epsilon of **FP32**.
 
-$$
-\kappa(A) \lesssim \frac{1}{u_{\text{float}}} \approx 10^7
-$$
+If $\kappa(A) \gtrsim 10^7$, the low-precision solver cannot distinguish the solution signal from rounding noise, causing the process to stagnate or diverge.
 
-If the system is too ill-conditioned, refinement may fail.
+---
+
+### 4.4 GPU-Specific Performance Benefits
+Implementing this foundation on a GPU provides two primary performance advantages:
+
+*   **Memory Bandwidth Reduction:** Storing and reading the matrix $A$ (or its $LU$ factors) in **FP32** halves the required memory bandwidth compared to **FP64**. Since many solvers are bandwidth-bound, this leads to a near 2x speedup in data transfer.
+*   **Hardware Throughput:** Modern GPUs (e.g., NVIDIA Ampere/Hopper) feature specialized units like **Tensor Cores** designed specifically for high-speed, low-precision matrix math. By offloading the $O(n^3)$ operations to these cores in FP32, the solver achieves significantly higher TFLOPS than is possible using the standard FP64 data path.
 
 ---
 
 ## 5. Code Structure
 
+The following pseudo-code describes the integration of FP32 and FP64 operations within the GPU solver loop.
+
+**Input:** Matrix $A$, Right-hand side $b$, Tolerance $\epsilon$  
+**Output:** Refined solution $x$
+
+```python
+# --- Setup Phase (Low Precision) ---
+A_f32 = convert_to_fp32(A)
+b_f32 = convert_to_fp32(b)
+
+# Perform LU Factorization in FP32 (O(n^3) - GPU Bottleneck)
+L_f32, U_f32 = factorize_fp32(A_f32)
+
+# Initial Solve
+x_f64 = solve_fp32(L_f32, U_f32, b_f32) # Result promoted to FP64
+
+# --- Refinement Phase (High Precision) ---
+for k in range(max_iterations):
+    # 1. Compute Residual in FP64 (Prevents cancellation)
+    # r = b - Ax
+    r_f64 = compute_residual_fp64(A, x_f64, b)
+    
+    # Check convergence
+    if norm(r_f64) < epsilon:
+        break
+        
+    # 2. Correction Solve in FP32 (Fast path)
+    # Solve: A * delta_x = r
+    r_f32 = convert_to_fp32(r_f64)
+    delta_x_f32 = solve_fp32(L_f32, U_f32, r_f32)
+    
+    # 3. Update Solution in FP64
+    # x = x + delta_x
+    x_f64 = x_f64 + convert_to_fp64(delta_x_f32)
+
+return x_f64
+```
 ### 5.1 Namespace
 
 ```

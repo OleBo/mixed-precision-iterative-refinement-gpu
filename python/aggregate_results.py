@@ -3,7 +3,7 @@
 import pandas as pd
 
 
-def aggregate(in_file="results/baseline_results.csv", out_file="results/summary_results.csv"):
+def aggregate(in_file="results/baseline_results.csv", out_file="results/summary_baseline_results.csv"):
     df = pd.read_csv(in_file)
 
     grouped = df.groupby(["n", "matrix"]).agg(

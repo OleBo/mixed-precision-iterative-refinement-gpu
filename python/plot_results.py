@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def plot(file="results/summary_results.csv"):
+def plot(file="results/summary_baseline_results.csv"):
     df = pd.read_csv(file)
 
     for metric in ["residual", "error"]:
@@ -27,7 +27,7 @@ def plot(file="results/summary_results.csv"):
         plt.legend()
         plt.grid(True)
 
-        plt.savefig(f"results/plots/{metric}.png")
+        plt.savefig(f"results/plots/baseline_{metric}.png")
         plt.close()
 
 

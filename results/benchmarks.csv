@@ -1,5 +1,0 @@
-iteration,residual,error,precision
-0,1.0e+00,1.0e+00,fp64
-1,2.0e-01,3.0e-01,mixed
-2,5.0e-02,8.0e-02,mixed
-3,1.0e-02,1.5e-02,mixed

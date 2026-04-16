@@ -7,7 +7,7 @@ from numpy.linalg import solve, norm
 from baseline import make_random, make_hilbert, compute_metrics
 
 
-def run_experiments(sizes, K=50, matrix_type="random", out_file="results/baseline_results.csv"):
+def run_experiments(sizes, K=50, matrix_type="random"):
     rows = []
 
     for n in sizes:
@@ -24,15 +24,19 @@ def run_experiments(sizes, K=50, matrix_type="random", out_file="results/baselin
             r, e = compute_metrics(A, x, b, x_true)
 
             rows.append([n, matrix_type, seed, r, e])
+    return rows
 
-    with open(out_file, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["n", "matrix", "seed", "residual", "error"])
-        writer.writerows(rows)
-
-    print(f"Saved {len(rows)} rows to {out_file}")
+    
 
 
 if __name__ == "__main__":
+    out_file="results/baseline_results.csv"
     sizes = [64, 128, 256, 512, 1024]
-    run_experiments(sizes, K=50, matrix_type="random")
+    with open(out_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["n", "matrix", "seed", "residual", "error"])
+        rows_r = run_experiments(sizes, K=50, matrix_type="random")
+        writer.writerows(rows_r)
+        rows_h = run_experiments(sizes, K=1,  matrix_type="hilbert")
+
+    print(f"Saved {len(rows_r)+len(rows_h)} rows to {out_file}")

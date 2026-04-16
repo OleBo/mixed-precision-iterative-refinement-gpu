@@ -59,36 +59,53 @@ mixed_precision_solver/
 └── .gitignore
 ```
 
-## Getting started
+## 🛠 Workflow Management
 
-### Requirements
+This project uses a Makefile to automate CUDA compilation via CMake and manage experiment workflows. All logs, including compilation outputs and script execution details, are captured in workflow.log.
 
-- CUDA-capable GPU
-- CUDA Toolkit
-- CMake
-- Python 3.10+
-- NumPy
-- Matplotlib
+### Prerequisites
 
-### Build
+* CMake (v3.10+)
+* CUDA Toolkit (for nvcc)
+* Python 3 with required dependencies
 
+### Available Commands
+
+| Command | Description |
+|---|---|
+| make | Runs all workflows in sequence (Baseline → Standard → Full). |
+| make workflow_baseline | Runs Python-based baseline tests on 128x128 Random and Hilbert matrices. |
+| make workflow_standard | Executes the sequential pipeline (Run experiments → Aggregate → Plot). |
+| make workflow_full | Primary Target. Compiles the CUDA library via CMake and runs full-scale experiments. |
+| make clean | Deletes the build/ directory and resets workflow.log. |
+
+### Automated CUDA Build
+
+The workflow_full target manages the CMake lifecycle automatically:
+1. **Configuration:** Initializes the build/ directory and runs cmake ...
+2. **Compilation:** Builds libmixed_precision_lib.so using cmake --build.
+3. **Verification:** Performs an immediate symbol check (nm) to ensure gpuSolve and refineSolution are properly exported before the experiments begin.
+
+## 🐳 Running with Docker
+
+This project uses a multi-stage Docker build to compile the CUDA solver and execute the experiment pipeline in a lightweight runtime environment.
+
+1. Build the Image
+  
+    From the project root, build the Docker image:
 ```bash
-mkdir -p build && cd build
-cmake ..
-make -j
-```
-
-### Docker
-
-Build and run the solver in a containerized environment with GPU support:
-
-```bash
-# Build the image
 docker build -t mixed-precision-solver .
-
-# Run with GPU support
-docker run --gpus all -it mixed-precision-solver
 ```
+2. Run the Workflow
+
+    Execute the following command to run all experiments. This command uses volume mounts to ensure your logs and plots are saved to your local machine:
+```bash
+docker run --gpus all \
+    -v $(pwd)/results:/app/results \
+    -v $(pwd)/workflow.log:/app/workflow.log \
+    mixed-precision-solver
+```
+**Requirement:** You must have the NVIDIA Container Toolkit installed on your host to use GPU acceleration.
 
 Or use Docker Compose:
 
@@ -100,46 +117,31 @@ docker-compose up -d
 docker-compose exec mixed-precision-solver bash
 ```
 
-The Dockerfile uses a multi-stage build process:
-- **Builder stage**: Compiles CUDA code on `nvidia/cuda:12.2.2-devel`
-- **Runtime stage**: Runs on `nvidia/cuda:12.2.2-runtime` with Python support
+## 🚀 Running from GitHub Container Registry (GHCR)
 
-## 🛠 Workflow Management
+If you don't want to build the image locally, you can pull the pre-compiled version directly from GHCR.
 
-This project uses a Makefile to automate compilation and execution across three independent workflows. All Python scripts are located in ./python/, and CUDA source files are in ./src/.
+1. Pull the Image
+```bash
+docker pull ghcr.io/olebo/mixed-precision-iterative-refinement-gpu:latest
+```
+2. Run Experiments
 
-### Prerequisites
-
-* CUDA Toolkit (for nvcc)
-* Python 3 with required dependencies
-
-### Available Commands
-
-| Command | Description |
-|---|---|
-| make | Runs all workflows in sequence (Baseline → Standard → Full). |
-| make workflow_baseline | Runs baseline tests with random and hilbert matrices. |
-| make workflow_standard | Runs the main experiment pipeline (Run → Aggregate → Plot). |
-| make build_cuda | Compiles the CUDA solver into libmpsolver.so. |
-| make workflow_full | Compiles the solver and runs the full experiment/plotting suite. |
-| make clean | Removes libmpsolver.so and workflow.log. |
-
-### Error Handling & Logging
-
-* Logging: Every step (including timestamps and console output) is logged to workflow.log.
-* Resilience: The workflow_full suite is configured to run even if a specific script within it encounters an error, ensuring data collection continues where possible.
-* Dependencies: workflow_full will automatically trigger build_cuda if the shared library is missing.
+    Use the following command to execute the workflow. This will use your local GPU and save all generated plots/logs to your current directory:
+```bash
+docker run --gpus all \
+    -v $(pwd)/results:/app/results \
+    -v $(pwd)/workflow.log:/app/workflow.log \
+    ghcr.io/olebo/mixed-precision-iterative-refinement-gpu:latest
+```
 
 
-## Expected results
+## 🛠 CI/CD Integration
 
-- `FP16` only: low accuracy or divergence
-- `FP32` only: better, but not always enough for ill-conditioned systems
-- Mixed precision iterative refinement: converges to `FP64`-level accuracy with much lower low-precision cost
-
-## Continuous Integration
-
-This project uses GitHub Actions for automated building and testing:
+The image is automatically rebuilt and pushed to GHCR on every push to the main branch. This ensures that:
+- The CUDA Solver is always compiled with the latest source code.
+- The Python environment and dependencies are pre-configured and tested.
+- The Runtime image remains lightweight by excluding the heavy CUDA development toolkit.
 
 - **Workflow**: `.github/workflows/build.yml`
 - **Triggers**: Push to `main`/`develop` branches and pull requests
@@ -152,4 +154,4 @@ View workflow runs in the [Actions](./../../actions) tab.
 
 ## GitHub Pages
 
-This repository includes GitHub Pages documentation served from `docs/`.
+This repository includes GitHub Pages [documentation](https://olebo.github.io/mixed-precision-iterative-refinement-gpu) served from `docs/`.

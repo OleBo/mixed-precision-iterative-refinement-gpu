@@ -47,3 +47,27 @@ void gpuSolve(const float* d_A_in, const float* d_b_in, float* d_x_out, int n) {
 }
 
 } // namespace mixed_precision
+
+// --- the wrapper for python ---
+extern "C" {
+    void gpuSolve(const float* h_A, const float* h_b, float* h_x, int n) {
+        // 1. Allocate GPU memory
+        float *d_A, *d_b, *d_x;
+        cudaMalloc(&d_A, n * n * sizeof(float));
+        cudaMalloc(&d_b, n * sizeof(float));
+        cudaMalloc(&d_x, n * sizeof(float));
+
+        // 2. Copy from CPU (Python) to GPU
+        cudaMemcpy(d_A, h_A, n * n * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_b, h_b, n * sizeof(float), cudaMemcpyHostToDevice);
+
+        // 3. Run your solver
+        mixed_precision::gpuSolve(d_A, d_b, d_x, n);
+
+        // 4. Copy result back to CPU (Python)
+        cudaMemcpy(h_x, d_x, n * sizeof(float), cudaMemcpyDeviceToHost);
+
+        // 5. Cleanup
+        cudaFree(d_A); cudaFree(d_b); cudaFree(d_x);
+    }
+}

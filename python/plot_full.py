@@ -24,3 +24,6 @@ def plot(file="results/full_results.csv"):
 
     plt.savefig("results/plots/comparison.png")
     plt.close()
+    
+if __name__ == "__main__":
+    plot()

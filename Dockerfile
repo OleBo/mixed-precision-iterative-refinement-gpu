@@ -5,9 +5,6 @@ FROM nvidia/cuda:12.2.2-devel-ubuntu22.04 AS builder
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
-    git \
-    wget \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -17,9 +14,7 @@ WORKDIR /build
 COPY . .
 
 # Create build directory and compile
-RUN rm -rf build && mkdir -p build && cd build && \
-    cmake .. && \
-    make
+RUN cmake -S . -B build && cmake --build build
 
 # Final runtime image
 FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
@@ -31,7 +26,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip3 install numpy matplotlib
+RUN pip3 install argparse csv ctypes numpy pandas matplotlib
 
 # Set working directory
 WORKDIR /app
@@ -39,10 +34,13 @@ WORKDIR /app
 # Copy built artifacts from builder
 COPY --from=builder /build/build /app/build
 COPY --from=builder /build/include /app/include
-COPY --from=builder /build/python /app/python
+COPY --from=builder /build/src /app/src
+COPY --from=builder /build/CMakeLists.txt /app/CMakeLists.txt
+# Copy built artifacts and the Makefile logic
 COPY --from=builder /build/results /app/results
-COPY --from=builder /build/CMakeLists.txt /app/
+COPY --from=builder /build/python /app/python
+COPY --from=builder /build/Makefile /app/Makefile
 
 # Set entrypoint
 ENTRYPOINT ["/bin/bash"]
-CMD ["-c", "cd /app && python3 python/experiments.py"]
+CMD ["make all"]
