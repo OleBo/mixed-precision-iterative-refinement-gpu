@@ -38,9 +38,9 @@ Precision split:
 
 <p align="center">
   <img src="./results/plots/comparison.png" alt="Comparison Solver Accuracy" width="600">
-  <br>
-  <em>Figure 1: Comparison of numerical error across different solvers. The FP32 GPU implementation (using cusolverDnSgetrf) provides a fast initial estimate, while the Mixed Precision Iterative Refinement approach successfully regains double-precision accuracy (10^{-12}), matching or exceeding standard FP64 performance.</em>
 </p>
+
+**Figure 1:** Comparison of numerical error across different solvers. The **FP32 GPU** implementation (using `cusolverDnSgetrf`) provides a fast initial estimate, while the **Mixed Precision Iterative Refinement** approach successfully regains double-precision accuracy ($10^{-12}$), matching or exceeding standard **FP64** performance.
 
 
 ## 🛠 Workflow Management
