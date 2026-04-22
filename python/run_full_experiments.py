@@ -5,7 +5,7 @@ import numpy as np
 from numpy.linalg import solve
 
 from baseline import make_random, compute_metrics
-from gpu_wrapper import gpu_solve_fp32, gpu_refine
+from gpu_wrapper import gpu_solve, gpu_refine
 
 
 def run(sizes, K=30, out_file="results/full_results.csv"):
@@ -22,7 +22,7 @@ def run(sizes, K=30, out_file="results/full_results.csv"):
             r64, e64 = compute_metrics(A, x64, b, x_true)
 
             # FP32 GPU
-            x32 = gpu_solve_fp32(A, b)
+            x32 = gpu_solve(A, b)
             r32, e32 = compute_metrics(A, x32, b, x_true)
 
             # Mixed precision

@@ -17,17 +17,12 @@ set(CMAKE_CUDA_ARCHITECTURES 75)
 add_library(mixed_precision_lib SHARED
     src/solver.cu
     src/refinement.cu
-    src/utils.cu
 )
 
 # This tells the library to search for its dependencies in the CUDA folder at runtime
 set_target_properties(mixed_precision_lib PROPERTIES
     INSTALL_RPATH "/usr/local/cuda/lib64"
     BUILD_WITH_INSTALL_RPATH TRUE
-)
-
-# Required for cross-file kernel calls and linking
-set_target_properties(mixed_precision_lib PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
 )
@@ -41,6 +36,44 @@ target_link_libraries(mixed_precision_lib
     CUDA::cudart
 )
 
-# 3. Build the executable and link it to your lib
-add_executable(mpsolver src/main.cu)
-target_link_libraries(mpsolver PRIVATE mixed_precision_lib)
+# ============================================================
+# TESTING (GoogleTest)
+# ============================================================
+enable_testing()
+
+include(FetchContent)
+
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/release-1.12.1.zip
+)
+
+# Avoid Windows CRT issues (harmless elsewhere)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
+
+# -------------------------------
+# Test executable
+# -------------------------------
+add_executable(mpsolver_tests
+    tests/test_gpu_solve.cpp
+    tests/test_refinement.cpp
+)
+
+# Important: tests are C++ (not CUDA), but link CUDA lib
+target_link_libraries(mpsolver_tests
+    PRIVATE
+    mixed_precision_lib
+    GTest::gtest_main
+)
+
+# Needed for CUDA runtime linking inside tests
+target_link_libraries(mpsolver_tests
+    PRIVATE
+    CUDA::cudart
+)
+
+# Discover tests automatically
+include(GoogleTest)
+gtest_discover_tests(mpsolver_tests)

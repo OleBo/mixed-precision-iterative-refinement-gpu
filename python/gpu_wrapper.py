@@ -1,57 +1,62 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import ctypes
-import os
+import pytest
+from ctypes import cdll, c_float, c_double, c_int, POINTER
 
-# 1. Manually add the CUDA library path to the environment
-os.environ['LD_LIBRARY_PATH'] += ':/usr/local/cuda/lib64'
+# ------------------------------------------------------------
+# Load shared library
+# ------------------------------------------------------------
+lib = cdll.LoadLibrary("./build/libmixed_precision_lib.so")
 
-# 2. Use the absolute path to your .so file 
-# Colab paths can be tricky with relative './build'
-so_path = "/content/drive/MyDrive/mixed-precision-iterative-refinement-gpu/build/libmixed_precision_lib.so"
-
-# Load the shared library
-#lib = ctypes.CDLL("./build/libmixed_precision_lib.so")
-lib = ctypes.CDLL(so_path)
-
-# Define the argument types for gpuSolve
-# Assuming: void gpuSolve(float* A, float* b, float* x, int n)
+# Define gpuSolve signature
 lib.gpuSolve.argtypes = [
-    ctypes.POINTER(ctypes.c_float),
-    ctypes.POINTER(ctypes.c_float),
-    ctypes.POINTER(ctypes.c_float),
-    ctypes.c_int,
+    POINTER(c_float),  # A
+    POINTER(c_float),  # b
+    POINTER(c_float),  # x
+    c_int              # n
 ]
-
-# Define argument types
-# void refineSolution(const double* h_A, const double* h_b, double* h_x, int n, int maxIter)
-lib.refineSolution.argtypes = [
-    ctypes.POINTER(ctypes.c_double),
-    ctypes.POINTER(ctypes.c_double),
-    ctypes.POINTER(ctypes.c_double),
-    ctypes.c_int,
-    ctypes.c_int,
-]
+lib.gpuSolve.restype = c_int
 
 
-def gpu_solve_fp32(A, b):
+# ------------------------------------------------------------
+# Helper: call solver with safety checks
+# ------------------------------------------------------------
+def gpu_solve(A: np.ndarray, b: np.ndarray):
     n = A.shape[0]
 
-    A32 = A.astype(np.float32).copy(order="C")
-    b32 = b.astype(np.float32).copy(order="C")
-    x32 = np.zeros_like(b32)
+    # Ensure data is float precision (float32) and contiguous
+    #assert A.dtype == np.float32
+    #assert b.dtype == np.float32
+    #assert A.flags["C_CONTIGUOUS"]
+    #assert b.flags["C_CONTIGUOUS"]
+    A = A.astype(np.float32).copy(order="C")
+    b = b.astype(np.float32).copy(order="C")
+   
 
-    # Call the CUDA function
-    lib.gpuSolve(
-        # Get pointers to the numpy arrays
-        A32.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-        b32.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-        x32.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-        n,
+    x = np.zeros_like(b)
+
+    info = lib.gpuSolve(
+        A.ctypes.data_as(POINTER(c_float)),
+        b.ctypes.data_as(POINTER(c_float)),
+        x.ctypes.data_as(POINTER(c_float)),
+        n
     )
 
-    return x32.astype(np.float64)
+    if info != 0:
+        raise RuntimeError(f"gpuSolve failed with info = {info}")
+
+    return x
+
+
+# # Define refineSolution signature
+lib.refineSolution.argtypes = [
+    POINTER(c_double), # h_A
+    POINTER(c_double), # h_b
+    POINTER(c_double), # h_x
+    c_int,              # n
+    c_int               # maxIter
+]
 
 
 def gpu_refine(A, b, max_iter=10):
@@ -66,9 +71,9 @@ def gpu_refine(A, b, max_iter=10):
 
     # Call C++
     lib.refineSolution(
-        A64.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        b64.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        x64.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        A64.ctypes.data_as(POINTER(c_double)),
+        b64.ctypes.data_as(POINTER(c_double)),
+        x64.ctypes.data_as(POINTER(c_double)),
         n,
         max_iter,
     )

@@ -1,73 +1,128 @@
-#include "solver.h"
+// - performs LU factorization with cuSOLVER
+// - solves Ax=b
+// - copies d_info back to host
+// - returns info so your tests can assert on it
 
-namespace mixed_precision {
+#include <cuda_runtime.h>
+#include <cusolverDn.h>
 
-// RAII helper to manage CUDA memory automatically within this file
-template<typename T>
-struct GpuPtr {
-    T* ptr = nullptr;
-    GpuPtr(size_t count) { CUDA_CHECK(cudaMalloc(&ptr, count * sizeof(T))); }
-    ~GpuPtr() { if (ptr) cudaFree(ptr); }
-    operator T*() { return ptr; }
-};
+#include <iostream>
 
-void initializeCuda() {
-    CUDA_CHECK(cudaSetDevice(0));
-}
+// Optional: simple CUDA error macro (lightweight but useful)
+#define CUDA_CHECK(call)                                      \
+    do {                                                      \
+        cudaError_t err = (call);                             \
+        if (err != cudaSuccess) {                             \
+            std::cerr << "CUDA error: "                       \
+                      << cudaGetErrorString(err)              \
+                      << std::endl;                           \
+            goto cleanup;                                        \
+        }                                                     \
+    } while (0)
 
-void shutdownCuda() {
-    cudaDeviceReset();
-}
+#define CUSOLVER_CHECK(call)                                  \
+    do {                                                      \
+        cusolverStatus_t status = (call);                     \
+        if (status != CUSOLVER_STATUS_SUCCESS) {              \
+            std::cerr << "cuSOLVER error: " << status         \
+                      << std::endl;                           \
+            goto cleanup;                                        \
+        }                                                     \
+    } while (0)
 
-void gpuSolve(const float* d_A_in, const float* d_b_in, float* d_x_out, int n) {
+extern "C"
+int gpuSolve(float* A, float* b, float* x, int n)
+{
+    float *d_A = nullptr;
+    float *d_b = nullptr;
+    int *d_pivots = nullptr;
+    int *d_info = nullptr;
+
+    int info = 0;
+    int work_size = 0;
+    float* d_work = nullptr;
+
     cusolverDnHandle_t handle;
-    if (cusolverDnCreate(&handle) != CUSOLVER_STATUS_SUCCESS) return;
+    CUSOLVER_CHECK(cusolverDnCreate(&handle));
 
-    // 1. Allocate internal buffers
-    GpuPtr<float> d_A_copy(n * n);
-    GpuPtr<int> d_pivot(n);
-    GpuPtr<int> d_info(1);
+    // Allocate device memory
+    CUDA_CHECK(cudaMalloc(&d_A, n * n * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_b, n * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_pivots, n * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_info, sizeof(int)));
 
-    // 2. Setup Data: Sgetrf overwrites A; Sgetrs overwrites B (into x_out)
-    CUDA_CHECK(cudaMemcpy(d_A_copy, d_A_in, n * n * sizeof(float), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(d_x_out, d_b_in, n * sizeof(float), cudaMemcpyDeviceToDevice));
+    // Copy inputs to device
+    CUDA_CHECK(cudaMemcpy(d_A, A, n * n * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_b, b, n * sizeof(float), cudaMemcpyHostToDevice));
 
-    // 3. Workspace Query
-    int lwork = 0;
-    cusolverDnSgetrf_bufferSize(handle, n, n, d_A_copy, n, &lwork);
-    GpuPtr<float> d_work(lwork);
+    // ------------------------------------------------------------
+    // Step 1: LU factorization A = P * L * U
+    // ------------------------------------------------------------
+    CUSOLVER_CHECK(
+        cusolverDnSgetrf_bufferSize(handle, n, n, d_A, n, &work_size)
+    );
 
-    // 4. LU Factorization (A = PLU)
-    cusolverDnSgetrf(handle, n, n, d_A_copy, n, d_work, d_pivot, d_info);
+    CUDA_CHECK(cudaMalloc((void**)&d_work, work_size * sizeof(float)));
 
-    // 5. Solve (Ax = b)
-    cusolverDnSgetrs(handle, CUBLAS_OP_N, n, 1, d_A_copy, n, d_pivot, d_x_out, n, d_info);
+    CUSOLVER_CHECK(
+        cusolverDnSgetrf(
+            handle,
+            n,
+            n,
+            d_A,
+            n,
+            d_work,
+            d_pivots,
+            d_info
+        )
+    );
+
+    // Copy info back after factorization
+    CUDA_CHECK(cudaMemcpy(&info, d_info, sizeof(int), cudaMemcpyDeviceToHost));
+
+    if (info != 0) {
+        // LU failed (e.g. singular matrix)
+        std::cerr << "LU factorization failed, info = " << info << std::endl;
+        goto cleanup;
+    }
+
+    // ------------------------------------------------------------
+    // Step 2: Solve Ax = b using LU
+    // ------------------------------------------------------------
+    CUSOLVER_CHECK(
+        cusolverDnSgetrs(
+            handle,
+            CUBLAS_OP_T,
+            n,
+            1,
+            d_A,
+            n,
+            d_pivots,
+            d_b,
+            n,
+            d_info
+        )
+    );
+
+    // Copy info again (solve phase)
+    CUDA_CHECK(cudaMemcpy(&info, d_info, sizeof(int), cudaMemcpyDeviceToHost));
+
+    if (info != 0) {
+        std::cerr << "Solve failed, info = " << info << std::endl;
+        goto cleanup;
+    }
+
+    // Copy result x = solution (stored in d_b)
+    CUDA_CHECK(cudaMemcpy(x, d_b, n * sizeof(float), cudaMemcpyDeviceToHost));
+
+cleanup:
+    if (d_work)    cudaFree(d_work);
+    if (d_A)       cudaFree(d_A);
+    if (d_b)       cudaFree(d_b);
+    if (d_pivots)  cudaFree(d_pivots);
+    if (d_info)    cudaFree(d_info);
 
     cusolverDnDestroy(handle);
-}
 
-} // namespace mixed_precision
-
-// --- the wrapper for python ---
-extern "C" {
-    void gpuSolve(const float* h_A, const float* h_b, float* h_x, int n) {
-        // 1. Allocate GPU memory
-        float *d_A, *d_b, *d_x;
-        cudaMalloc(&d_A, n * n * sizeof(float));
-        cudaMalloc(&d_b, n * sizeof(float));
-        cudaMalloc(&d_x, n * sizeof(float));
-
-        // 2. Copy from CPU (Python) to GPU
-        cudaMemcpy(d_A, h_A, n * n * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(d_b, h_b, n * sizeof(float), cudaMemcpyHostToDevice);
-
-        // 3. Run your solver
-        mixed_precision::gpuSolve(d_A, d_b, d_x, n);
-
-        // 4. Copy result back to CPU (Python)
-        cudaMemcpy(h_x, d_x, n * sizeof(float), cudaMemcpyDeviceToHost);
-
-        // 5. Cleanup
-        cudaFree(d_A); cudaFree(d_b); cudaFree(d_x);
-    }
+    return info;
 }
