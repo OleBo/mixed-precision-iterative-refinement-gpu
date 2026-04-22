@@ -34,30 +34,14 @@ Precision split:
 - Residual computation: `FP64`
 - Update: `FP64`
 
-## Project structure
+## Result
 
-```
-mixed_precision_solver/
-├── .github/
-│   └── workflows/
-├── docs/
-│   └── index.md
-├── include/
-│   └── solver.h
-├── python/
-│   ├── experiments.py
-│   └── plots.py
-├── results/
-│   ├── benchmarks.csv
-│   └── plots.png
-├── src/
-│   ├── refinement.cu
-│   ├── solver.cu
-│   └── utils.cu
-├── CMakeLists.txt
-├── README.md
-└── .gitignore
-```
+<p align="center">
+  <img src="./results/plots/comparison.png" alt="Comparison Solver Accuracy" width="600">
+  <br>
+  <em>Figure 1: Comparison of numerical error across different solvers. The FP32 GPU implementation (using cusolverDnSgetrf) provides a fast initial estimate, while the Mixed Precision Iterative Refinement approach successfully regains double-precision accuracy (10^{-12}), matching or exceeding standard FP64 performance.</em>
+</p>
+
 
 ## 🛠 Workflow Management
 
